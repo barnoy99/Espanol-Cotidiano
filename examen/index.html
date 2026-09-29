@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mon espagnol</title>
+<meta name="theme-color" content="#b3412e">
+<style>
+  :root {
+    --bg: #fbf6ee; --card: #ffffff; --ink: #2a2522; --muted: #6d625a;
+    --accent: #b3412e; --accent-ink: #ffffff; --soft: #f3e3d3; --line: #e4d6c7;
+    --ok: #2f7d4f; --fs: 21px;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: var(--fs); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif; line-height: 1.45; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--bg);
+    border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex;
+    align-items: center; gap: 10px; }
+  header .title { font-weight: bold; flex: 1; font-size: 0.85rem; color: var(--accent); }
+  header button { font-size: 0.8rem; padding: 6px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  .bar { height: 8px; background: var(--soft); }
+  .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  main { max-width: 640px; margin: 0 auto; padding: 18px 16px 120px; }
+  .section { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: 6px; }
+  h1 { font-size: 1.35rem; margin: 0 0 12px; line-height: 1.25; }
+  h2 { font-size: 1.15rem; margin: 0 0 14px; line-height: 1.3; }
+  p { margin: 0 0 14px; }
+  .hint { color: var(--muted); font-size: 0.85rem; }
+  .es { font-size: 1.2rem; background: var(--card); border: 1px solid var(--line);
+    border-left: 5px solid var(--accent); border-radius: 12px; padding: 14px 16px;
+    margin: 0 0 16px; }
+  .opts { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 14px; }
+  .opt { text-align: left; font: inherit; font-size: 1rem; padding: 14px 16px;
+    border-radius: 14px; border: 2px solid var(--line); background: var(--card);
+    color: var(--ink); min-height: 56px; }
+  .opt.sel { border-color: var(--accent); background: var(--soft); }
+  .opt.idk { border-style: dashed; color: var(--muted); font-size: 0.9rem; min-height: 48px; }
+  textarea { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px;
+    border-radius: 12px; border: 2px solid var(--line); background: var(--card);
+    color: var(--ink); min-height: 120px; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+  .btn { font: inherit; font-size: 1rem; padding: 14px 20px; border-radius: 14px;
+    border: none; background: var(--accent); color: var(--accent-ink); min-height: 56px; }
+  .btn.soft { background: var(--soft); color: var(--ink); }
+  .btn.rec { background: #1f5f8b; }
+  .btn.rec.on { background: #c0392b; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .7; } }
+  .btn:disabled { opacity: .45; }
+  .scale { display: flex; gap: 8px; margin: 6px 0 4px; }
+  .scale .opt { flex: 1; text-align: center; padding: 12px 0; min-height: 54px; }
+  .scale-lbl { display: flex; justify-content: space-between; font-size: 0.75rem;
+    color: var(--muted); margin-bottom: 16px; }
+  .sub { font-weight: bold; margin: 16px 0 4px; font-size: 1rem; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
+    border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  footer .in { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
+  footer .btn { flex: 1; }
+  footer .back { flex: 0 0 auto; }
+  .center { text-align: center; }
+  .big { font-size: 3rem; margin: 10px 0; }
+  .saved { font-size: 0.75rem; color: var(--ok); min-height: 1em; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">🇪🇸 Mon espagnol — évaluation</div>
+  <button id="aminus" aria-label="Texte plus petit">A−</button>
+  <button id="aplus" aria-label="Texte plus grand">A+</button>
+</header>
+<div class="bar"><div id="bar"></div></div>
+<main id="main"></main>
+<footer><div class="in">
+  <button class="btn soft back" id="back">◀</button>
+  <button class="btn" id="next">Continuer ▶</button>
+</div></footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBEL3bYGB6oeGCNZ4hRzhNqa1yq_eUlgCc",
+    authDomain: "francais-quotidien.firebaseapp.com",
+    databaseURL: "https://francais-quotidien-default-rtdb.firebaseio.com",
+    projectId: "francais-quotidien"
+  };
+  var DB_PATH = 'progress/fannySpanishExam';
+  var LS_KEY = 'fannyExam_v1';
+
+  // ── Content ───────────────────────────────────────────
+  // type: info | choice | multi | scale | text | mcq | listen | produce | talk
+  // mcq/listen carry a CEFR level and the index of the right answer.
+  var IDK = 'Je ne sais pas';
+
+  var STEPS = [
+    { type: 'info', id: 'welcome', html:
+      '<div class="center big">👋</div>' +
+      '<h1>Bonjour Fanny !</h1>' +
+      '<p>Ce petit questionnaire sert à préparer une application d\'espagnol <b>faite pour vous</b>.</p>' +
+      '<p>Ce n\'est pas un examen scolaire : il n\'y a pas de note, et c\'est normal de ne pas tout savoir. ' +
+      'Les questions deviennent de plus en plus difficiles — quand vous ne savez pas, touchez simplement <b>« Je ne sais pas »</b>. Cela m\'aide autant qu\'une bonne réponse.</p>' +
+      '<p>Durée : environ 25 minutes. Vous pouvez vous arrêter quand vous voulez : vos réponses sont enregistrées et vous reprendrez au même endroit.</p>' +
+      '<p class="hint">Astuce : les boutons <b>A−</b> et <b>A+</b> en haut changent la taille du texte. Pensez à monter le volume du téléphone.</p>' },
+
+    // ── 1. À propos de vous ──
+    { type: 'info', id: 's1', html:
+      '<div class="section">Partie 1 sur 6</div><h1>À propos de vous</h1>' +
+      '<p>D\'abord quelques questions en français, pour comprendre ce que vous voulez faire avec l\'espagnol.</p>' },
+    { type: 'text', id: 'history', sec: 'Vous', q: 'Comment avez-vous appris l\'espagnol ? (à l\'école, en voyage, en famille, seule…)', ph: 'Racontez en quelques mots…' },
+    { type: 'choice', id: 'lastPractice', sec: 'Vous', q: 'Quand avez-vous parlé espagnol pour la dernière fois ?',
+      opts: ['Cette semaine', 'Ce mois-ci', 'Cette année', 'Il y a plusieurs années', 'Presque jamais'] },
+    { type: 'multi', id: 'withWhom', sec: 'Vous', q: 'Avec qui voulez-vous pouvoir parler espagnol ?', hint: 'Plusieurs réponses possibles.',
+      opts: ['La famille', 'Des amis', 'Des voisins', 'Des commerçants, au restaurant', 'Le médecin, la pharmacie', 'Des gens rencontrés en voyage', 'Au téléphone', 'Autre'] },
+    { type: 'choice', id: 'where', sec: 'Vous', q: 'Les personnes avec qui vous parlerez viennent surtout…',
+      opts: ['D\'Espagne', 'D\'Amérique latine (Argentine, Mexique…)', 'Des deux', 'Je ne sais pas encore'], other: 'Précisez le pays si vous le savez :' },
+    { type: 'multi', id: 'situations', sec: 'Vous', q: 'Dans quelles situations voulez-vous être à l\'aise en premier ?', hint: 'Choisissez les plus importantes pour vous.',
+      opts: ['Se présenter, faire connaissance', 'Bavarder : la famille, la santé, le temps, les nouvelles', 'Raconter ce que j\'ai fait, mes souvenirs', 'Faire les courses, le marché', 'Au restaurant, au café', 'Chez le médecin, à la pharmacie', 'Demander son chemin, les transports', 'À l\'hôtel, en voyage', 'Au téléphone', 'Comprendre la télévision, la radio', 'Une urgence'] },
+    { type: 'scale', id: 'selfEval', sec: 'Vous', q: 'Comment évaluez-vous votre espagnol ?',
+      items: ['Comprendre quand on me parle', 'Parler, me faire comprendre', 'Lire', 'Écrire'], lo: '1 = très difficile', hi: '5 = très facile' },
+    { type: 'multi', id: 'blocks', sec: 'Vous', q: 'Qu\'est-ce qui vous gêne le plus quand vous parlez espagnol ?', hint: 'Plusieurs réponses possibles.',
+      opts: ['Les gens parlent trop vite', 'Je ne trouve pas mes mots', 'Les conjugaisons', 'Je mélange avec le français (ou une autre langue)', 'La prononciation', 'J\'ai peur de faire des fautes', 'Je comprends mais je n\'arrive pas à répondre', 'Je perds le fil d\'une conversation à plusieurs'] },
+    { type: 'text', id: 'languages', sec: 'Vous', q: 'Quelles autres langues parlez-vous, et à quel niveau ?', ph: 'Par exemple : français (langue maternelle), italien un peu…' },
+    { type: 'choice', id: 'tuUsted', sec: 'Vous', q: 'Pour parler, vous avez surtout besoin du tutoiement (tú) ou du vouvoiement (usted) ?',
+      opts: ['Surtout « tú » (famille, amis)', 'Surtout « usted » (commerçants, médecin…)', 'Les deux', 'Je ne sais pas'] },
+    { type: 'choice', id: 'dailyTime', sec: 'Vous', q: 'Combien de temps aimeriez-vous pratiquer par jour ?',
+      opts: ['5 à 10 minutes', '15 à 20 minutes', 'Environ 30 minutes', 'Plus d\'une demi-heure'] },
+    { type: 'multi', id: 'howLearn', sec: 'Vous', q: 'Comment préférez-vous pratiquer ?', hint: 'Plusieurs réponses possibles.',
+      opts: ['Écouter sans regarder l\'écran (en marchant, en cuisinant…)', 'Lire les phrases à l\'écran', 'Répéter à voix haute', 'Répondre à des questions comme dans une vraie conversation', 'Écrire'] },
+    { type: 'choice', id: 'phone', sec: 'Vous', q: 'Quel téléphone avez-vous ?',
+      opts: ['iPhone', 'Android (Samsung, Xiaomi, Google…)', 'Je ne sais pas'] },
+
+    // ── 2. Lecture et grammaire ──
+    { type: 'info', id: 's2', html:
+      '<div class="section">Partie 2 sur 6</div><h1>Lire l\'espagnol</h1>' +
+      '<p>Vingt petites questions à choix. Elles commencent très simples et deviennent difficiles vers la fin.</p>' +
+      '<p>Si vous hésitez vraiment, touchez « Je ne sais pas » plutôt que de deviner.</p>' },
+    { type: 'mcq', id: 'r1', lvl: 'A1', q: 'Quelqu\'un vous dit :', es: '¿Cómo está usted?', ask: 'Que répondez-vous ?',
+      opts: ['Muy bien, gracias, ¿y usted?', 'Me llamo Fanny.', 'Tengo ochenta años.', 'Soy de Francia.'], a: 0 },
+    { type: 'mcq', id: 'r2', lvl: 'A1', q: 'Complétez :', es: 'Yo ___ francesa.',
+      opts: ['soy', 'estoy', 'tengo', 'hay'], a: 0 },
+    { type: 'mcq', id: 'r3', lvl: 'A1', q: 'Que veut dire :', es: 'Quisiera un vaso de agua, por favor.',
+      opts: ['Je voudrais un verre d\'eau, s\'il vous plaît.', 'Où sont les toilettes, s\'il vous plaît ?', 'L\'eau est froide, s\'il vous plaît.', 'Je voudrais un vase, s\'il vous plaît.'], a: 0 },
+    { type: 'mcq', id: 'r4', lvl: 'A1', q: 'Vous demandez la pharmacie. On vous répond :', es: 'Está a la derecha, al lado del banco.', ask: 'Où est-elle ?',
+      opts: ['À droite, à côté de la banque', 'À gauche, en face de la banque', 'Tout droit, derrière le banc', 'Elle est fermée'], a: 0 },
+    { type: 'mcq', id: 'r5', lvl: 'A2', q: 'Complétez :', es: 'Hoy ___ mucho calor.',
+      opts: ['hace', 'es', 'está', 'tiene'], a: 0 },
+    { type: 'mcq', id: 'r6', lvl: 'A2', q: 'Complétez :', es: 'Ayer ___ al mercado con mi hija.',
+      opts: ['fui', 'voy', 'iré', 'vaya'], a: 0 },
+    { type: 'mcq', id: 'r7', lvl: 'A2', q: 'Que veut dire :', es: 'Me duele la cabeza.',
+      opts: ['J\'ai mal à la tête.', 'Je me suis cogné la tête.', 'Je me lave les cheveux.', 'J\'ai la tête qui tourne.'], a: 0 },
+    { type: 'mcq', id: 'r8', lvl: 'A2', q: 'Une amie vous dit :', es: 'Estoy constipada.', ask: 'Que veut-elle dire ?',
+      opts: ['Elle est enrhumée.', 'Elle est constipée.', 'Elle est fatiguée.', 'Elle est enceinte.'], a: 0 },
+    { type: 'mcq', id: 'r9', lvl: 'A2', q: 'Complétez :', es: 'A mi marido le ___ mucho las películas antiguas.',
+      opts: ['gustan', 'gusta', 'gustamos', 'gusto'], a: 0 },
+    { type: 'mcq', id: 'r10', lvl: 'A2', q: 'Que demande cette personne ?', es: '¿Le importaría hablar un poco más despacio?',
+      opts: ['De parler un peu plus lentement', 'De parler un peu plus fort', 'De ne pas parler maintenant', 'De répéter le prix'], a: 0 },
+    { type: 'mcq', id: 'r11', lvl: 'B1', q: 'Complétez :', es: 'Cuando ___ a Madrid, te llamaré.',
+      opts: ['llegue', 'llego', 'llegaré', 'llegué'], a: 0 },
+    { type: 'mcq', id: 'r12', lvl: 'B1', q: 'Complétez :', es: 'Llevo tres años ___ español.',
+      opts: ['estudiando', 'estudiar', 'estudiado', 'estudio'], a: 0 },
+    { type: 'mcq', id: 'r13', lvl: 'B1', q: 'Complétez :', es: 'Todavía no lo he ___.',
+      opts: ['hecho', 'hacido', 'hizo', 'haciendo'], a: 0 },
+    { type: 'mcq', id: 'r14', lvl: 'B1', q: 'Complétez :', es: 'Espero que ___ bien.',
+      opts: ['estés', 'estás', 'estar', 'estarás'], a: 0 },
+    { type: 'mcq', id: 'r15', lvl: 'B1', q: 'Complétez :', es: 'Si tuviera más tiempo, ___ más.',
+      opts: ['viajaría', 'viajaré', 'viajo', 'viaje'], a: 0 },
+    { type: 'mcq', id: 'r16', lvl: 'B1', q: 'Que veut dire :', es: 'Échame una mano con las bolsas, por favor.',
+      opts: ['Aide-moi avec les sacs, s\'il te plaît.', 'Lave-toi les mains, s\'il te plaît.', 'Jette les sacs, s\'il te plaît.', 'Donne-moi un sac, s\'il te plaît.'], a: 0 },
+    { type: 'mcq', id: 'r17', lvl: 'B2', q: 'Complétez :', es: 'No creo que ___ razón.',
+      opts: ['tenga', 'tiene', 'tendrá', 'tenía'], a: 0 },
+    { type: 'mcq', id: 'r18', lvl: 'B2', q: 'Complétez :', es: 'Me alegro mucho de que ___ venido.',
+      opts: ['hayas', 'has', 'habías', 'habrás'], a: 0 },
+    { type: 'mcq', id: 'r19', lvl: 'B2', q: 'Que veut dire :', es: 'Estoy hasta las narices de este ruido.',
+      opts: ['J\'en ai assez de ce bruit.', 'Ce bruit me donne mal au nez.', 'Je suis curieuse de ce bruit.', 'Je n\'entends plus ce bruit.'], a: 0 },
+    { type: 'mcq', id: 'r20', lvl: 'B2', q: 'Complétez :', es: 'Si me lo hubieras dicho antes, te ___ ayudado.',
+      opts: ['habría', 'había', 'hubiera sido', 'he'], a: 0 },
+
+    // ── 3. Écoute ──
+    { type: 'info', id: 's3', html:
+      '<div class="section">Partie 3 sur 6</div><h1>Écouter</h1>' +
+      '<p>Le téléphone va dire une phrase en espagnol. Choisissez ce qu\'elle veut dire.</p>' +
+      '<p>Vous pouvez la réécouter autant de fois que vous voulez, et aussi <b>plus lentement</b> 🐢.</p>' +
+      '<p><b>Montez le volume</b>, puis essayez ce bouton :</p>' +
+      '<div class="row"><button class="btn" data-test-tts>🔊 Tester le son</button></div>' +
+      '<p class="hint">Si vous n\'entendez rien, vérifiez que le téléphone n\'est pas en mode silencieux (le petit bouton sur le côté des iPhone).</p>' },
+    { type: 'listen', id: 'l1', lvl: 'A1', es: 'Buenos días. ¿Qué desea?', ask: 'Que vous demande-t-on ?',
+      opts: ['Ce que vous désirez', 'Comment vous allez', 'Quelle heure il est', 'D\'où vous venez'], a: 0 },
+    { type: 'listen', id: 'l2', lvl: 'A1', es: 'Son las tres y media.', ask: 'Quelle heure est-il ?',
+      opts: ['15 h 30', '13 h 30', '15 h 15', '15 h 45'], a: 0 },
+    { type: 'listen', id: 'l3', lvl: 'A2', es: 'El autobús número doce sale cada veinte minutos de la plaza.', ask: 'Qu\'avez-vous compris ?',
+      opts: ['Le bus 12 part toutes les 20 minutes de la place', 'Le bus 20 part à midi de la place', 'Le bus 12 arrive dans 20 minutes', 'Il n\'y a pas de bus sur la place'], a: 0 },
+    { type: 'listen', id: 'l4', lvl: 'A2', es: 'Lo siento, hoy no queda pescado. Vuelva mañana por la mañana.', ask: 'Que dit le vendeur ?',
+      opts: ['Il n\'y a plus de poisson, revenez demain matin', 'Le poisson est très frais ce matin', 'Le poisson coûte cher aujourd\'hui', 'Le magasin ferme demain matin'], a: 0 },
+    { type: 'listen', id: 'l5', lvl: 'B1', es: 'Tome estas pastillas dos veces al día, después de comer, durante una semana.', ask: 'Que dit le médecin ?',
+      opts: ['Deux fois par jour, après le repas, pendant une semaine', 'Deux comprimés avant de manger, une fois par semaine', 'Une fois par jour pendant deux semaines', 'Deux fois par jour, à jeun, pendant un mois'], a: 0 },
+    { type: 'listen', id: 'l6', lvl: 'B1', es: 'Perdone, ¿me lo podría repetir? Es que no le he entendido bien.', ask: 'Que veut cette personne ?',
+      opts: ['Qu\'on répète, parce qu\'elle n\'a pas bien compris', 'Qu\'on parle plus fort, parce qu\'il y a du bruit', 'S\'excuser d\'être en retard', 'Qu\'on lui explique le chemin'], a: 0 },
+    { type: 'listen', id: 'l7', lvl: 'B2', es: 'Si me hubieras avisado antes, te habría ido a buscar al aeropuerto.', ask: 'Qu\'avez-vous compris ?',
+      opts: ['Si tu m\'avais prévenu plus tôt, je serais venu te chercher à l\'aéroport', 'Préviens-moi quand tu arrives à l\'aéroport', 'Je t\'ai cherché partout à l\'aéroport', 'Tu aurais dû prendre un taxi à l\'aéroport'], a: 0 },
+    { type: 'listen', id: 'l8', lvl: 'B2', fast: true, es: 'Oye, al final no quedamos mañana, que a mi hermana le ha surgido un imprevisto.', ask: 'Qu\'avez-vous compris ?',
+      opts: ['Le rendez-vous de demain est annulé : la sœur a un imprévu', 'On se retrouve demain avec la sœur', 'La sœur arrive demain par surprise', 'On doit se dépêcher pour demain'], a: 0 },
+
+    // ── 4. Traduire ──
+    { type: 'info', id: 's4', html:
+      '<div class="section">Partie 4 sur 6</div><h1>Dire en espagnol</h1>' +
+      '<p>Voici des phrases en français. Dites-les en espagnol, comme vous les diriez à quelqu\'un.</p>' +
+      '<p>Vous pouvez <b>écrire</b>, ou toucher <b>🎤 Parler</b> et dire la phrase à voix haute : le téléphone l\'écrira pour vous. ' +
+      'Ne vous inquiétez ni des accents ni de l\'orthographe. Et si une phrase est trop difficile, dites ce que vous pouvez, ou passez.</p>' +
+      '<p class="hint">La première fois, le téléphone vous demandera peut-être d\'autoriser le micro : acceptez.</p>' },
+    { type: 'produce', id: 'p1', lvl: 'A1', fr: 'Bonjour, je m\'appelle Fanny et je suis française.' },
+    { type: 'produce', id: 'p2', lvl: 'A1', fr: 'Je voudrais un café au lait, s\'il vous plaît. Combien ça coûte ?' },
+    { type: 'produce', id: 'p3', lvl: 'A2', fr: 'Pouvez-vous parler plus lentement, s\'il vous plaît ? Je ne comprends pas bien.' },
+    { type: 'produce', id: 'p4', lvl: 'A2', fr: 'Hier, je suis allée au marché avec ma fille.' },
+    { type: 'produce', id: 'p5', lvl: 'A2', fr: 'J\'ai mal au dos depuis trois jours.' },
+    { type: 'produce', id: 'p6', lvl: 'B1', fr: 'Quand j\'étais jeune, j\'habitais à la campagne et j\'allais à l\'école à pied.' },
+    { type: 'produce', id: 'p7', lvl: 'B1', fr: 'Je veux que tu viennes dîner à la maison dimanche.' },
+    { type: 'produce', id: 'p8', lvl: 'B2', fr: 'Si j\'avais plus de temps, j\'apprendrais à danser le tango.' },
+
+    // ── 5. Conversation ──
+    { type: 'info', id: 's5', html:
+      '<div class="section">Partie 5 sur 6</div><h1>Une petite conversation</h1>' +
+      '<p>Maintenant, c\'est comme une vraie conversation. Écoutez la question 🔊, puis répondez librement en espagnol — ' +
+      'en parlant 🎤 ou en écrivant. Il n\'y a pas de bonne réponse : dites ce que vous pouvez, même en quelques mots.</p>' +
+      '<p>Si vous ne comprenez pas la question à l\'oral, touchez « Voir la question écrite ».</p>' },
+    { type: 'talk', id: 't1', lvl: 'A1', es: '¿Cómo se llama usted y de dónde es?' },
+    { type: 'talk', id: 't2', lvl: 'A1', es: 'Hábleme un poco de su familia.' },
+    { type: 'talk', id: 't3', lvl: 'A2', es: '¿Qué hizo usted ayer?' },
+    { type: 'talk', id: 't4', lvl: 'A2', es: '¿Por qué quiere aprender español? ¿Con quién quiere hablar?' },
+    { type: 'talk', id: 't5', lvl: 'B1', es: 'Cuénteme un recuerdo bonito de un viaje.' },
+    { type: 'talk', id: 't6', lvl: 'B1', es: '¿Qué le gusta hacer en su tiempo libre?' },
+    { type: 'talk', id: 't7', lvl: 'B2', es: 'En su opinión, ¿es mejor vivir en el campo o en la ciudad? ¿Por qué?' },
+
+    // ── 6. Pour finir ──
+    { type: 'info', id: 's6', html:
+      '<div class="section">Partie 6 sur 6</div><h1>Pour finir</h1><p>Deux dernières questions en français.</p>' },
+    { type: 'choice', id: 'howWasIt', sec: 'Pour finir', q: 'Ce questionnaire était…',
+      opts: ['Trop facile', 'Bien', 'Difficile mais intéressant', 'Trop difficile'] },
+    { type: 'choice', id: 'voiceSpeed', sec: 'Pour finir', q: 'La voix espagnole du téléphone, pour vous, c\'était…',
+      opts: ['Trop rapide', 'Bien', 'Un peu lent', 'Je n\'ai pas entendu de son'] },
+    { type: 'text', id: 'comments', sec: 'Pour finir', q: 'Voulez-vous ajouter quelque chose ? Un souhait pour l\'application, une situation précise qui vous inquiète…', ph: '(facultatif)' },
+
+    { type: 'done', id: 'done' }
+  ];
+
+  // ── State ─────────────────────────────────────────────
+  var state = load() || { sid: Date.now().toString(36), step: 0, ans: {}, startedAt: new Date().toISOString(), fs: 21 };
+  function load() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch (e) { return null; } }
+  function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var db = null;
+  try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.database(); } catch (e) {}
+  var pushTimer = null;
+  function save() {
+    state.updatedAt = new Date().toISOString();
+    saveLocal();
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 600);
+  }
+  function push() {
+    if (!db) return;
+    var out = { sid: state.sid, startedAt: state.startedAt, updatedAt: state.updatedAt,
+      step: state.step, stepId: STEPS[state.step].id, finished: !!state.finished,
+      ua: navigator.userAgent, summary: summary(), answers: state.ans };
+    db.ref(DB_PATH + '/' + state.sid).set(JSON.parse(JSON.stringify(out))).catch(function () {});
+  }
+
+  function summary() {
+    var by = {};
+    STEPS.forEach(function (s) {
+      if (s.type !== 'mcq' && s.type !== 'listen') return;
+      var k = (s.type === 'mcq' ? 'read_' : 'listen_') + s.lvl;
+      by[k] = by[k] || { ok: 0, of: 0 };
+      by[k].of++;
+      var r = state.ans[s.id];
+      if (r && r.correct) by[k].ok++;
+    });
+    return by;
+  }
+
+  // ── Speech ────────────────────────────────────────────
+  var voice = null;
+  function pickVoice() {
+    if (!window.speechSynthesis) return;
+    var vs = speechSynthesis.getVoices().filter(function (v) { return /^es/i.test(v.lang); });
+    voice = vs.filter(function (v) { return /es[-_]ES/i.test(v.lang); })[0] || vs[0] || null;
+  }
+  if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(text, rate) {
+    if (!window.speechSynthesis) return false;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = voice ? voice.lang : 'es-ES';
+    if (voice) u.voice = voice;
+    u.rate = rate;
+    speechSynthesis.speak(u);
+    return true;
+  }
+
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null;
+  function startRec(btn, ta, onText) {
+    if (rec) { rec.stop(); return; }
+    rec = new SR();
+    rec.lang = 'es-ES'; rec.interimResults = false; rec.continuous = false; rec.maxAlternatives = 1;
+    btn.classList.add('on'); btn.textContent = '⏹ J\'écoute… (toucher pour arrêter)';
+    rec.onresult = function (e) {
+      var t = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) t += e.results[i][0].transcript;
+      if (t) { ta.value = (ta.value ? ta.value.trim() + ' ' : '') + t.trim(); onText(); }
+    };
+    rec.onerror = function (e) {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed')
+        alert('Le micro n\'est pas autorisé. Vous pouvez écrire votre réponse, ou utiliser le micro du clavier.');
+    };
+    rec.onend = function () { rec = null; btn.classList.remove('on'); btn.textContent = '🎤 Parler'; };
+    try { rec.start(); } catch (e) { rec = null; btn.classList.remove('on'); btn.textContent = '🎤 Parler'; }
+  }
+
+  // ── Rendering ─────────────────────────────────────────
+  var main = document.getElementById('main');
+  var nextBtn = document.getElementById('next');
+  var backBtn = document.getElementById('back');
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // Options are shuffled once per question and the order kept, so a resumed
+  // session shows the same layout. Order is stored as indices into s.opts.
+  function order(s) {
+    state.order = state.order || {};
+    if (!state.order[s.id]) {
+      var o = s.opts.map(function (_, i) { return i; });
+      for (var i = o.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = o[i]; o[i] = o[j]; o[j] = t; }
+      state.order[s.id] = o;
+      saveLocal();
+    }
+    return state.order[s.id];
+  }
+
+  function ans(id) { return state.ans[id] || (state.ans[id] = {}); }
+
+  function render() {
+    if (rec) rec.stop();
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    var s = STEPS[state.step];
+    document.getElementById('bar').style.width = Math.round(100 * state.step / (STEPS.length - 1)) + '%';
+    backBtn.style.visibility = state.step === 0 || s.type === 'done' ? 'hidden' : 'visible';
+    nextBtn.style.display = s.type === 'done' ? 'none' : '';
+    nextBtn.textContent = state.step === 0 ? 'Commencer ▶' : 'Continuer ▶';
+    var h = '';
+    var a = ans(s.id);
+
+    if (s.type === 'info') h = s.html;
+
+    else if (s.type === 'choice' || s.type === 'multi') {
+      h = '<div class="section">' + esc(s.sec) + '</div><h2>' + esc(s.q) + '</h2>' +
+        (s.hint ? '<p class="hint">' + esc(s.hint) + '</p>' : '') + '<div class="opts">';
+      s.opts.forEach(function (o, i) {
+        var sel = s.type === 'multi' ? (a.v || []).indexOf(o) >= 0 : a.v === o;
+        h += '<button class="opt' + (sel ? ' sel' : '') + '" data-i="' + i + '">' + esc(o) + '</button>';
+      });
+      h += '</div>';
+      if (s.other || s.type === 'multi') h += '<p class="hint">' + esc(s.other || 'Autre chose ? (facultatif)') + '</p><textarea data-other rows="2" style="min-height:70px">' + esc(a.other || '') + '</textarea>';
+    }
+
+    else if (s.type === 'scale') {
+      h = '<div class="section">' + esc(s.sec) + '</div><h2>' + esc(s.q) + '</h2>';
+      a.v = a.v || {};
+      s.items.forEach(function (it, k) {
+        h += '<div class="sub">' + esc(it) + '</div><div class="scale">';
+        for (var n = 1; n <= 5; n++) h += '<button class="opt' + (a.v[it] === n ? ' sel' : '') + '" data-k="' + k + '" data-n="' + n + '">' + n + '</button>';
+        h += '</div><div class="scale-lbl"><span>' + esc(s.lo) + '</span><span>' + esc(s.hi) + '</span></div>';
+      });
+    }
+
+    else if (s.type === 'text') {
+      h = '<div class="section">' + esc(s.sec) + '</div><h2>' + esc(s.q) + '</h2>' +
+        '<textarea data-free placeholder="' + esc(s.ph || '') + '">' + esc(a.v || '') + '</textarea>';
+    }
+
+    else if (s.type === 'mcq' || s.type === 'listen') {
+      var part = s.type === 'mcq' ? 'Lire' : 'Écouter';
+      var list = STEPS.filter(function (x) { return x.type === s.type; });
+      h = '<div class="section">' + part + ' — ' + (list.indexOf(s) + 1) + ' / ' + list.length + '</div>';
+      if (s.type === 'mcq') h += '<h2>' + esc(s.q) + '</h2><div class="es" lang="es">' + esc(s.es) + '</div>' + (s.ask ? '<h2>' + esc(s.ask) + '</h2>' : '');
+      else {
+        h += '<div class="row"><button class="btn" data-play="1">🔊 Écouter</button><button class="btn soft" data-play="slow">🐢 Plus lentement</button></div>';
+        h += a.shown ? '<div class="es" lang="es">' + esc(s.es) + '</div>' : '';
+        h += '<h2>' + esc(s.ask) + '</h2>';
+      }
+      h += '<div class="opts">';
+      order(s).forEach(function (i) {
+        h += '<button class="opt' + (a.pick === i ? ' sel' : '') + '" data-pick="' + i + '"' + (s.type === 'mcq' && s.q === 'Complétez :' ? ' lang="es"' : '') + '>' + esc(s.opts[i]) + '</button>';
+      });
+      h += '<button class="opt idk' + (a.pick === -1 ? ' sel' : '') + '" data-pick="-1">🤷 ' + IDK + '</button></div>';
+      if (s.type === 'listen' && !a.shown) h += '<p class="hint"><button class="btn soft" data-show style="font-size:0.85rem;min-height:44px;padding:8px 14px">Je n\'entends rien — afficher la phrase</button></p>';
+    }
+
+    else if (s.type === 'produce' || s.type === 'talk') {
+      var lst = STEPS.filter(function (x) { return x.type === s.type; });
+      h = '<div class="section">' + (s.type === 'produce' ? 'Dire en espagnol' : 'Conversation') + ' — ' + (lst.indexOf(s) + 1) + ' / ' + lst.length + '</div>';
+      if (s.type === 'produce') {
+        h += '<h2>Comment dit-on en espagnol :</h2><div class="es">' + esc(s.fr) + '</div>';
+      } else {
+        h += '<div class="row"><button class="btn" data-play="1">🔊 Écouter la question</button><button class="btn soft" data-play="slow">🐢</button></div>';
+        h += a.shown ? '<div class="es" lang="es">' + esc(s.es) + '</div>'
+          : '<p><button class="btn soft" data-show style="font-size:0.85rem;min-height:44px;padding:8px 14px">Voir la question écrite</button></p>';
+        h += '<h2>Votre réponse en espagnol :</h2>';
+      }
+      h += '<textarea data-free lang="es" autocapitalize="sentences" placeholder="Écrivez ici, ou touchez 🎤 Parler">' + esc(a.v || '') + '</textarea>';
+      h += '<div class="row" style="margin-top:10px">' + (SR ? '<button class="btn rec" data-rec>🎤 Parler</button>' : '') +
+        '<button class="btn soft" data-clear>Effacer</button></div>';
+      if (!SR) h += '<p class="hint">Pour parler au lieu d\'écrire, touchez le petit micro 🎤 du clavier.</p>';
+      if (s.type === 'talk') h += '<button class="opt idk' + (a.noUnderstand ? ' sel' : '') + '" data-nu style="width:100%">🤷 Je n\'ai pas compris la question</button>';
+      h += '<div class="saved" data-saved></div>';
+    }
+
+    else if (s.type === 'done') {
+      state.finished = true; state.finishedAt = new Date().toISOString(); save();
+      h = '<div class="center big">🎉</div><h1 class="center">¡Muchas gracias, Fanny!</h1>' +
+        '<p>C\'est terminé. Vos réponses sont bien enregistrées : je vais pouvoir préparer une application adaptée à votre niveau et à vos envies.</p>' +
+        '<p>Vous pouvez fermer cette page.</p>' +
+        '<p class="center"><button class="btn soft" data-restart style="font-size:0.8rem">Revenir au début</button></p>';
+    }
+
+    main.innerHTML = h;
+    window.scrollTo(0, 0);
+    wire(s);
+  }
+
+  function wire(s) {
+    var a = ans(s.id);
+    var q = function (sel) { return main.querySelector(sel); };
+    var qa = function (sel) { return Array.prototype.slice.call(main.querySelectorAll(sel)); };
+
+    var t = q('[data-test-tts]');
+    if (t) t.onclick = function () { if (!speak('Hola Fanny, ¿me oye bien?', 0.9)) alert('Ce téléphone ne peut pas lire l\'espagnol à voix haute.'); };
+
+    if (s.type === 'choice' || s.type === 'multi') {
+      qa('.opt').forEach(function (b) {
+        b.onclick = function () {
+          var o = s.opts[+b.dataset.i];
+          if (s.type === 'choice') { a.v = o; qa('.opt').forEach(function (x) { x.classList.remove('sel'); }); b.classList.add('sel'); }
+          else {
+            a.v = a.v || [];
+            var k = a.v.indexOf(o);
+            if (k >= 0) a.v.splice(k, 1); else a.v.push(o);
+            b.classList.toggle('sel');
+          }
+          save();
+        };
+      });
+      var ot = q('[data-other]');
+      if (ot) ot.oninput = function () { a.other = ot.value; save(); };
+    }
+
+    if (s.type === 'scale') {
+      qa('.opt').forEach(function (b) {
+        b.onclick = function () {
+          var it = s.items[+b.dataset.k];
+          a.v[it] = +b.dataset.n;
+          qa('.opt[data-k="' + b.dataset.k + '"]').forEach(function (x) { x.classList.remove('sel'); });
+          b.classList.add('sel');
+          save();
+        };
+      });
+    }
+
+    var free = q('[data-free]');
+    if (free) {
+      free.oninput = function () {
+        a.v = free.value; a.typed = true; save();
+        var sv = q('[data-saved]'); if (sv) sv.textContent = '';
+      };
+    }
+
+    qa('[data-play]').forEach(function (b) {
+      b.onclick = function () {
+        var slow = b.dataset.play === 'slow';
+        var rate = slow ? 0.6 : (s.fast ? 1.05 : 0.9);
+        if (!speak(s.es, rate)) { alert('Ce téléphone ne peut pas lire l\'espagnol à voix haute. Touchez « afficher la phrase ».'); return; }
+        a.plays = (a.plays || 0) + 1;
+        if (slow) a.slowPlays = (a.slowPlays || 0) + 1;
+        save();
+      };
+    });
+    var sh = q('[data-show]');
+    if (sh) sh.onclick = function () { a.shown = true; save(); render(); };
+
+    qa('[data-pick]').forEach(function (b) {
+      b.onclick = function () {
+        var i = +b.dataset.pick;
+        a.pick = i;
+        a.lvl = s.lvl;
+        a.choice = i === -1 ? IDK : s.opts[i];
+        a.correct = i === s.a;
+        qa('[data-pick]').forEach(function (x) { x.classList.remove('sel'); });
+        b.classList.add('sel');
+        save();
+      };
+    });
+
+    var rb = q('[data-rec]');
+    if (rb) rb.onclick = function () {
+      a.spoke = true;
+      startRec(rb, free, function () { a.v = free.value; save(); var sv = q('[data-saved]'); if (sv) sv.textContent = '✓ enregistré'; });
+    };
+    var cl = q('[data-clear]');
+    if (cl) cl.onclick = function () { free.value = ''; a.v = ''; save(); };
+    var nu = q('[data-nu]');
+    if (nu) nu.onclick = function () { a.noUnderstand = !a.noUnderstand; nu.classList.toggle('sel'); save(); };
+
+    if (s.type === 'produce' || s.type === 'talk') { a.lvl = s.lvl; a.prompt = s.fr || s.es; }
+
+    var rs = q('[data-restart]');
+    if (rs) rs.onclick = function () { state.step = 0; save(); render(); };
+
+    // Auto-play the Spanish once on arrival for listening/conversation items.
+    if ((s.type === 'listen' || s.type === 'talk') && !a.plays) {
+      setTimeout(function () { if (speak(s.es, s.fast ? 1.05 : 0.9)) { a.plays = 1; save(); } }, 500);
+    }
+  }
+
+  nextBtn.onclick = function () {
+    var s = STEPS[state.step];
+    var a = state.ans[s.id] || {};
+    if ((s.type === 'mcq' || s.type === 'listen') && a.pick === undefined) {
+      alert('Choisissez une réponse — ou « Je ne sais pas ».');
+      return;
+    }
+    if (s.type === 'produce' || s.type === 'talk') {
+      if (!(a.v || '').trim()) a.skipped = true; else delete a.skipped;
+    }
+    state.step = Math.min(state.step + 1, STEPS.length - 1);
+    save(); render();
+  };
+  backBtn.onclick = function () { state.step = Math.max(0, state.step - 1); save(); render(); };
+
+  function setFs(n) { state.fs = Math.max(16, Math.min(30, n)); document.documentElement.style.setProperty('--fs', state.fs + 'px'); saveLocal(); }
+  document.getElementById('aplus').onclick = function () { setFs(state.fs + 2); };
+  document.getElementById('aminus').onclick = function () { setFs(state.fs - 2); };
+  setFs(state.fs || 21);
+
+  if (state.step >= STEPS.length) state.step = 0;
+  render();
+  push();
+})();
+</script>
+</body>
+</html>
