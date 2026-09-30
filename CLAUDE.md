@@ -8,11 +8,21 @@ but deliberately much simpler: few buttons, big text, no flags or settings.
 ## Status
 - Step 1 (done): placement exam at `examen/index.html`, live at
   https://barnoy99.github.io/Espanol-Cotidiano/examen/
-- Step 2 (in progress): the phrase app at the repo root (`index.html`).
-  **Her exam results have NOT been assessed yet** — the first corpus was written
-  blind, pitched at A1–A2 everyday speech with a few B1 (`lvl` on each entry).
-  Once the results are read, re-level the corpus. What she told the user: the
-  hardest part is understanding people when they **speak fast**.
+- Step 2 (in progress): the phrase app at the repo root (`index.html`), levelled
+  on her exam results.
+
+## Learner profile (from the exam)
+This repo is public: **do not write her scores, her exam answers, or personal
+details here.** Read them from Firebase when needed (see Exam results).
+- Level: roughly A2; listening is the weakest skill. The corpus is mostly A2
+  with a B1 stretch.
+- The problem she names is fast speech. She also struggles to find her words and
+  with conjugations. Her priority is telling what she did and her memories (past
+  tenses).
+- She prefers listening without the screen, repeating aloud, and answering
+  questions like a real conversation. About 30 min a day, iPhone, tú and usted.
+- Some personal sentences in `data.js` use facts she gave in the exam. Don't
+  invent other facts about her life.
 
 ## Files
 Plain HTML/CSS/JS, no build step. `index.html`, `app.js` (one IIFE), `data.js`
@@ -20,7 +30,7 @@ Plain HTML/CSS/JS, no build step. `index.html`, `app.js` (one IIFE), `data.js`
 
 **Cache-busting on every asset change:** bump the file's `?v=N` in `index.html`,
 the same URL in `SHELL` in `sw.js`, and `CACHE_VERSION` in `sw.js`.
-Current: `app.js?v=1`, `style.css?v=1`, `data.js?v=1`, `CACHE_VERSION = 'v1'`.
+Current: `app.js?v=2`, `style.css?v=1`, `data.js?v=2`, `CACHE_VERSION = 'v2'`.
 
 ## The three modes
 - **Réviser les phrases** — French shown → "Voir en espagnol" reveals + speaks
@@ -33,7 +43,7 @@ Current: `app.js?v=1`, `style.css?v=1`, `data.js?v=1`, `CACHE_VERSION = 'v1'`.
   held while running; iOS still stops speech if the screen locks.
 - **Écouter et comprendre** — targets fast speech. A Spanish sentence is spoken;
   she picks the meaning among 3 French options (distractors from phrases within
-  ±8 ids, i.e. same theme) or "Je ne sais pas". Speed ladder `RATES`
+  ±6 positions in `data.js`, i.e. same section) or "Je ne sais pas". Speed ladder `RATES`
   (0.6 → 1.2): 3 right in a row → faster, 2 misses → slower; a right answer
   after the 🐢 replay doesn't count toward speeding up. Shuffled persistent cycle
   over all sentences (`lsCycle`/`lsPos`).
@@ -42,8 +52,13 @@ Current: `app.js?v=1`, `style.css?v=1`, `data.js?v=1`, `CACHE_VERSION = 'v1'`.
 `data.js`: `{ id, lvl, ctx, es, fr, alt_es, alt_fr }` — every entry needs both
 main and alt. Spain Spanish (es-ES voice), `usted` for strangers/shops/doctor,
 `tú` for family/friends, labelled in `ctx` where it matters. Written for a woman
-speaking (*cansada*, *perdida*, *encantada*). Append ids after the max; never
-renumber.
+speaking (*cansada*, *perdida*, *encantada*). 108 entries / 216 sentences.
+**File order is teaching order** (Réviser and Mains libres walk it): understanding
+and finding words, talking about herself, questions, greetings, then *Raconter*
+(past tenses), memories, then everyday situations. `ctx` labels starting "Piège"
+drill the common mistakes of a French speaker (her exam errors included); "Ce qu'on
+vous dit" are sentences she'll *hear*. Ids are not in file order: append new ids
+after the max (108); never renumber.
 
 ## Progress / sync
 localStorage `fannyES_v1`, mirrored to Firebase `progress/fannySpanish` (writes

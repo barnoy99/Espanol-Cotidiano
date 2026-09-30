@@ -429,9 +429,11 @@
   // Distractors come from nearby phrases (same theme, similar vocabulary) so
   // the right answer cannot be spotted from the topic alone.
   function lsOptions(key) {
-    var s = sentence(key), id = s.p.id, pool = [];
-    PHRASES.forEach(function (p) {
-      if (p.id !== id && Math.abs(p.id - id) <= 8) pool.push(p.fr, p.alt_fr);
+    // Neighbours by position in data.js (sections are contiguous there; ids
+    // are not in file order).
+    var s = sentence(key), at = PHRASES.indexOf(s.p), pool = [];
+    PHRASES.forEach(function (p, i) {
+      if (i !== at && Math.abs(i - at) <= 6) pool.push(p.fr, p.alt_fr);
     });
     pool = shuffle(pool.filter(function (f) { return f !== s.fr; }));
     return shuffle([s.fr, pool[0], pool[1]]);
