@@ -1,5 +1,160 @@
 <!doctype html>
+<html lang="fr">
+<head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=examen/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Español cotidiano</title>
-<a href="examen/">Commencer</a>
+<meta name="theme-color" content="#fbf6ee">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Español">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+
+<!-- ── Accueil ─────────────────────────────────────────── -->
+<section class="screen active" id="screen-home">
+  <div class="home">
+    <div class="home-top">
+      <h1 class="home-title">¡Hola, Fanny!</h1>
+      <div class="fs-ctl">
+        <button id="fs-minus" aria-label="Texte plus petit">A−</button>
+        <button id="fs-plus" aria-label="Texte plus grand">A+</button>
+      </div>
+    </div>
+    <p class="home-day" id="home-day"></p>
+
+    <button class="mode mode-revise" data-go="revise">
+      <span class="mode-icon">📖</span>
+      <span class="mode-text"><span class="mode-name">Réviser les phrases</span>
+      <span class="mode-sub" id="sub-revise">Le français, puis l'espagnol</span></span>
+    </button>
+    <button class="mode mode-hands" data-go="hands">
+      <span class="mode-icon">🎧</span>
+      <span class="mode-text"><span class="mode-name">Mains libres</span>
+      <span class="mode-sub">Pour la vaisselle, la cuisine… sans toucher l'écran</span></span>
+    </button>
+    <button class="mode mode-listen" data-go="listen">
+      <span class="mode-icon">👂</span>
+      <span class="mode-text"><span class="mode-name">Écouter et comprendre</span>
+      <span class="mode-sub" id="sub-listen">L'espagnol parlé, de plus en plus vite</span></span>
+    </button>
+
+    <p class="home-sync" id="home-sync"></p>
+  </div>
+</section>
+
+<!-- ── Réviser ─────────────────────────────────────────── -->
+<section class="screen" id="screen-revise">
+  <header class="bar-top">
+    <button class="btn-home" data-home>◀ Accueil</button>
+    <span class="bar-count" id="rv-count"></span>
+  </header>
+  <main class="content">
+    <div class="ctx" id="rv-ctx"></div>
+    <div class="card card-fr" id="rv-fr"></div>
+    <div id="rv-answer" hidden>
+      <div class="card card-es" lang="es">
+        <div class="es-text" id="rv-es"></div>
+        <div class="play-row">
+          <button class="btn-play" data-say="main">🔊 Écouter</button>
+          <button class="btn-play soft" data-say="main-slow">🐢 Lentement</button>
+        </div>
+      </div>
+      <div class="alt">
+        <div class="alt-label">Autre exemple</div>
+        <div class="alt-es" lang="es" id="rv-alt-es"></div>
+        <div class="alt-fr" id="rv-alt-fr"></div>
+        <div class="play-row">
+          <button class="btn-play soft" data-say="alt">🔊 Écouter</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="bar-bottom">
+    <div class="bar-in" id="rv-bar-ask">
+      <button class="btn big" id="rv-reveal">Voir en espagnol</button>
+    </div>
+    <div class="bar-in two" id="rv-bar-rate" hidden>
+      <button class="btn big again" id="rv-again">↺ À revoir</button>
+      <button class="btn big ok" id="rv-ok">✓ Je savais</button>
+    </div>
+  </footer>
+</section>
+
+<!-- ── Mains libres ────────────────────────────────────── -->
+<section class="screen" id="screen-hands">
+  <header class="bar-top">
+    <button class="btn-home" data-home>◀ Accueil</button>
+    <span class="bar-count" id="hf-count"></span>
+  </header>
+  <main class="content">
+    <div id="hf-intro">
+      <h2>Mains libres</h2>
+      <p>Le téléphone dit une phrase <b>en français</b>. Essayez de la dire <b>en espagnol</b>, à voix haute.</p>
+      <p>Puis il la dit en espagnol, <b>lentement</b>, puis à vitesse normale : répétez après lui.</p>
+      <p>Vous n'avez rien à toucher. Montez le volume et posez le téléphone.</p>
+      <p class="hint">Gardez l'application ouverte : si l'écran se verrouille, le son s'arrête.</p>
+    </div>
+    <div id="hf-run" hidden>
+      <div class="hf-phase" id="hf-phase"></div>
+      <div class="hf-ring"><span id="hf-num"></span></div>
+      <div class="ctx center" id="hf-ctx"></div>
+      <div class="card card-fr center" id="hf-fr"></div>
+      <div class="card card-es center" lang="es" id="hf-es" hidden></div>
+    </div>
+  </main>
+  <footer class="bar-bottom">
+    <div class="bar-in" id="hf-bar-start">
+      <button class="btn big" id="hf-start">▶ Commencer</button>
+    </div>
+    <div class="bar-in three" id="hf-bar-run" hidden>
+      <button class="btn big soft" id="hf-prev" aria-label="Phrase précédente">⏮</button>
+      <button class="btn big" id="hf-pause">⏸ Pause</button>
+      <button class="btn big soft" id="hf-next" aria-label="Phrase suivante">⏭</button>
+    </div>
+  </footer>
+</section>
+
+<!-- ── Écouter et comprendre ───────────────────────────── -->
+<section class="screen" id="screen-listen">
+  <header class="bar-top">
+    <button class="btn-home" data-home>◀ Accueil</button>
+    <span class="bar-count" id="ls-count"></span>
+  </header>
+  <main class="content">
+    <div class="speed">
+      <button class="speed-btn" id="ls-slower" aria-label="Plus lent">−</button>
+      <div class="speed-mid">
+        <div class="speed-label">Vitesse : <b id="ls-speed-name"></b></div>
+        <div class="speed-dots" id="ls-dots"></div>
+      </div>
+      <button class="speed-btn" id="ls-faster" aria-label="Plus rapide">+</button>
+    </div>
+    <div class="ls-msg" id="ls-msg"></div>
+    <div class="play-row center">
+      <button class="btn-play" id="ls-play">🔊 Réécouter</button>
+      <button class="btn-play soft" id="ls-slow">🐢 Lentement</button>
+    </div>
+    <h2 class="ls-q">Qu'avez-vous compris ?</h2>
+    <div class="opts" id="ls-opts"></div>
+    <div id="ls-result" hidden>
+      <div class="card card-es" lang="es" id="ls-es"></div>
+      <div class="ls-fr" id="ls-fr"></div>
+    </div>
+  </main>
+  <footer class="bar-bottom">
+    <div class="bar-in" id="ls-bar-next" hidden>
+      <button class="btn big" id="ls-next">Suivant ▶</button>
+    </div>
+  </footer>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="data.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
