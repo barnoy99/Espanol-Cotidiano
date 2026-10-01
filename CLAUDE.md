@@ -24,6 +24,11 @@ details here.** Read them from Firebase when needed (see Exam results).
 - Some personal sentences in `data.js` use facts she gave in the exam. Don't
   invent other facts about her life.
 
+## Deploying
+GitHub Pages serves `master`. **The user wants every finished change pushed to
+`master` (live for her) without asking** — validate first, then push the working
+branch and fast-forward `master`.
+
 ## Files
 Plain HTML/CSS/JS, no build step. `index.html`, `app.js` (one IIFE), `data.js`
 (content), `style.css`, `sw.js` (offline), `manifest.json`, icons.
