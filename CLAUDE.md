@@ -30,16 +30,24 @@ Plain HTML/CSS/JS, no build step. `index.html`, `app.js` (one IIFE), `data.js`
 
 **Cache-busting on every asset change:** bump the file's `?v=N` in `index.html`,
 the same URL in `SHELL` in `sw.js`, and `CACHE_VERSION` in `sw.js`.
-Current: `app.js?v=2`, `style.css?v=1`, `data.js?v=2`, `CACHE_VERSION = 'v2'`.
+Current: `app.js?v=3`, `style.css?v=1`, `data.js?v=2`, `CACHE_VERSION = 'v3'`.
+
+## Slow speech (`speakSlow`)
+iOS voices barely change speed with `rate` (0.6 sounds almost like 0.85), so
+every 🐢 / "lentement" says the sentence in short word groups (`slowChunks`: split
+at punctuation, ~3 words per group, never ending a group on *la/a/de/que*…) at
+rate 0.6 with a 450 ms pause between groups. `speechGen` cancels a chain in
+progress; every `speak`/`stopSpeech` bumps it. Used by Réviser (main and alt),
+the Mains libres slow step, and Écouter's 🐢 button and replay after a miss.
 
 ## The three modes
 - **Réviser les phrases** — French shown → "Voir en espagnol" reveals + speaks
-  the Spanish, with 🐢 slow replay and the alt example. "✓ Je savais" sends the
+  the Spanish, with 🐢 slow replay, and the alt example (also 🔊 and 🐢). "✓ Je savais" sends the
   card to the back of `rvQueue`; "↺ À revoir" re-inserts it 4 cards ahead.
   Rating taps within 500 ms of the reveal are ignored (same screen spot).
 - **Mains libres** — hands-free loop over every sentence (main then alt, data
   order, `hfPos`): French prompt → 7 s to say it in Spanish → Spanish slow
-  (rate 0.65) → 6 s repeat → Spanish normal (0.9) → 6 s repeat → next. Wake lock
+  (`speakSlow`) → 6 s repeat → Spanish normal (0.9) → 6 s repeat → next. Wake lock
   held while running; iOS still stops speech if the screen locks.
 - **Écouter et comprendre** — targets fast speech. A Spanish sentence is spoken;
   she picks the meaning among 3 French options (distractors from phrases within

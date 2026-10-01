@@ -137,6 +137,10 @@
   // so the hands-free loop can never stall. A cancelled utterance also
   // fires onend, so callers guard with a generation token.
   function speak(text, lang, rate, onEnd) {
+    speechGen++;
+    return speakRaw(text, lang, rate, onEnd);
+  }
+  function speakRaw(text, lang, rate, onEnd) {
     var done = false, guard = null;
     var finish = function () { if (done) return; done = true; clearTimeout(guard); if (onEnd) onEnd(); };
     if (!window.speechSynthesis) { if (onEnd) setTimeout(finish, 1500); return false; }
@@ -152,7 +156,59 @@
     speechSynthesis.speak(u);
     return true;
   }
-  function stopSpeech() { if (window.speechSynthesis) speechSynthesis.cancel(); }
+  function stopSpeech() { speechGen++; if (window.speechSynthesis) speechSynthesis.cancel(); }
+
+  // Slow Spanish. iOS voices barely change speed with `rate` (0.6 sounds
+  // almost like 0.85), so slow speech is said in short groups of words with a
+  // pause between them: "¿Puede hablar | más despacio, | por favor?".
+  // speechGen cancels a chain in progress: any speak/stopSpeech bumps it.
+  var speechGen = 0;
+  var SLOW_RATE = 0.6, SLOW_GAP = 450;
+  // Split at punctuation, then cut each phrase into even groups of about three
+  // words, never ending a group on a small word (la, a, de…) that belongs to
+  // the next one: "Me duele | la espalda desde hace | tres días."
+  var GLUE = /^(el|la|los|las|un|una|unos|unas|a|al|de|del|en|con|por|para|sin|mi|mis|tu|tus|su|sus|que|y|o|pero|si|muy|cuando|me|te|se|le|lo|les|no)$/i;
+  function slowChunks(text) {
+    var phrases = [], cur = [];
+    text.split(/\s+/).filter(Boolean).forEach(function (w) {
+      cur.push(w);
+      if (/[,.;:!?…]$/.test(w)) { phrases.push(cur); cur = []; }
+    });
+    if (cur.length) phrases.push(cur);
+    var out = [];
+    phrases.forEach(function (ws) {
+      var n = Math.ceil(ws.length / 3), groups = [], at = 0;
+      for (var g = 0; g < n; g++) {
+        var size = Math.round((ws.length - at) / (n - g));
+        groups.push(ws.slice(at, at + size)); at += size;
+      }
+      for (var k = 0; k < groups.length - 1; k++) {
+        while (groups[k].length > 1 && GLUE.test(groups[k][groups[k].length - 1].replace(/^[¿¡]/, '')))
+          groups[k + 1].unshift(groups[k].pop());
+      }
+      // A lone short word ("Es") is not worth its own pause.
+      for (var m = groups.length - 2; m >= 0; m--) {
+        if (groups[m].length === 1 && groups[m][0].replace(/[¿¡,.;:!?…]/g, '').length <= 3)
+          groups.splice(m, 2, groups[m].concat(groups[m + 1]));
+      }
+      groups.forEach(function (gr) { if (gr.length) out.push(gr.join(' ')); });
+    });
+    return out;
+  }
+  function speakSlow(text, onEnd) {
+    var gen = ++speechGen, chunks = slowChunks(text);
+    var next = function (i) {
+      if (gen !== speechGen) return;
+      if (i >= chunks.length) { if (onEnd) onEnd(); return; }
+      speakRaw(chunks[i], 'es', SLOW_RATE, function () {
+        if (gen !== speechGen) return;
+        if (i + 1 >= chunks.length) next(i + 1);
+        else setTimeout(function () { next(i + 1); }, SLOW_GAP);
+      });
+    };
+    next(0);
+    return !!window.speechSynthesis;
+  }
 
   var audioCtx = null;
   function initAudio() {
@@ -256,7 +312,8 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-say]'), function (b) {
     b.onclick = function () {
       var p = byId[state.rvQueue[0]], w = b.dataset.say;
-      speak(w === 'alt' ? p.alt_es : p.es, 'es', w === 'main-slow' ? 0.6 : 0.85);
+      var text = /^alt/.test(w) ? p.alt_es : p.es;
+      if (/-slow$/.test(w)) speakSlow(text); else speak(text, 'es', 0.85);
     };
   });
   // The rating buttons appear where the reveal button was; ignore taps in
@@ -340,10 +397,13 @@
       }, 1000);
     });
   }
+  // rate 'slow' = speakSlow (word groups with pauses).
   function hfSay(label, text, lang, rate, high, then) {
     hfStage(function (guard) {
       hfPhase(label, '♪');
-      ding(high, guard(function () { speak(text, lang, rate, guard(then)); }));
+      ding(high, guard(function () {
+        if (rate === 'slow') speakSlow(text, guard(then)); else speak(text, lang, rate, guard(then));
+      }));
     });
   }
   function hfSentence() {
@@ -359,7 +419,7 @@
     hfSay('En français…', s.fr, 'fr', 0.95, false, function () {
       hfCountdown('À vous : dites-le en espagnol', HF_THINK, function () {
         showEs();
-        hfSay('En espagnol, lentement', s.es, 'es', 0.65, true, function () {
+        hfSay('En espagnol, lentement', s.es, 'es', 'slow', true, function () {
           hfCountdown('Répétez !', HF_REPEAT, function () {
             hfSay('Encore une fois', s.es, 'es', 0.9, true, function () {
               hfCountdown('Répétez !', HF_REPEAT, function () {
@@ -424,7 +484,7 @@
   }
   function lsPlay(slow) {
     var s = sentence(ls.key);
-    speak(s.es, 'es', slow ? RATES[0] : RATES[state.lsRate]);
+    if (slow) speakSlow(s.es); else speak(s.es, 'es', RATES[state.lsRate]);
   }
   // Distractors come from nearby phrases (same theme, similar vocabulary) so
   // the right answer cannot be spotted from the topic alone.
@@ -490,7 +550,7 @@
         ls.nextMsg = 'On ralentit un peu : ' + RATE_NAMES[state.lsRate].toLowerCase() + '.';
       }
       // Replay it slowly with the words on screen, to link sound and text.
-      setTimeout(function () { if (current === 'listen') speak(s.es, 'es', RATES[0]); }, 300);
+      setTimeout(function () { if (current === 'listen') speakSlow(s.es); }, 300);
     }
     $('ls-msg').textContent = msg;
     $('ls-result').hidden = false;

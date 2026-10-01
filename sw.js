@@ -1,14 +1,14 @@
 /* Service worker — offline support.
    IMPORTANT: bump CACHE_VERSION on every deploy that changes assets,
    together with the ?v=N cache-busters in index.html. */
-var CACHE_VERSION = 'v2';
+var CACHE_VERSION = 'v3';
 var CACHE_NAME = 'espanol-' + CACHE_VERSION;
 
 var SHELL = [
   './',
   'index.html',
   'style.css?v=1',
-  'app.js?v=2',
+  'app.js?v=3',
   'data.js?v=2',
   'manifest.json',
   'icon-192.png',
